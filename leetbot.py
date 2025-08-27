@@ -4,6 +4,8 @@ import logging
 from dotenv import load_dotenv
 import os
 from datetime import date
+import requests
+from bs4 import BeautifulSoup
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
@@ -28,11 +30,32 @@ async def ping(ctx):
 #daily code for today's leetcode problem
 @bot.command()
 async def daily(ctx):
-    #get today's date
-    current_date = date.today()
-    url = \
-        f'https://leetcode.com/problems/diagonal-traverse/description/?envType=daily-question&envId={current_date}'
-    await ctx.send(url)
+    query = """
+    {
+      activeDailyCodingChallengeQuestion {
+        date
+        link
+        question {
+          questionFrontendId
+          title
+          titleSlug
+          difficulty
+        }
+      }
+    }
+    """
+    response = requests.post("https://leetcode.com/graphql", json={"query": query})
+    data = response.json()["data"]["activeDailyCodingChallengeQuestion"]
+
+    q = data["question"]
+    url = f"https://leetcode.com{data['link']}"
+
+    await ctx.send(f"""
+**Name:** {q['title']}
+**Difficulty:** {q['difficulty']}
+**Link:** {url}
+""")
+
 
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
