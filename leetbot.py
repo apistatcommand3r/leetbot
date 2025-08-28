@@ -5,7 +5,7 @@ import logging
 from dotenv import load_dotenv
 import os
 import requests
-from datetime import date
+from datetime import date, timedelta, datetime
 from bs4 import BeautifulSoup
 import random
 
@@ -39,7 +39,7 @@ def init_db():
 def get_user(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT streak, last_done FROM streaks WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT streaks, last_done FROM streaks WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     conn.close()
     return row
@@ -48,14 +48,38 @@ def update_user(user_id, streak, last_done):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("""
-                   INSERT INTO streaks (user_id, streak, last_done)
+                   INSERT INTO streaks (user_id, streaks, last_done)
                    VALUES (?, ?, ?)
                    ON CONFLICT(user_id) DO UPDATE SET
-                                                      streak=excluded.streak,
-                                                      last_done=excluded.last_done
+                        streaks=excluded.streaks,
+                        last_done=excluded.last_done
                    """, (user_id, streak, last_done))
     conn.commit()
     conn.close()
+
+@bot.command()
+async def done(ctx):
+    init_db()
+    today = date.today()
+    user_id = str(ctx.author.id)
+    info = get_user(user_id)
+
+    if info is None:
+        streak = 1
+        await ctx.send("Welcome! streak = 1")
+    else:
+        last_done = datetime.strptime(info[1], "%Y-%m-%d").date()
+        streak = info[0]
+        if last_done == today:
+            await ctx.send("Already logged today!")
+        elif last_done == today - timedelta(days=1):
+            streak = streak + 1
+            await ctx.send(f"Streak continued! Streak:{streak}")
+        else:
+            streak = 1
+            await ctx.send(f"Missed a day, streak restarted! Streak:1")
+
+    update_user(user_id, streak, str(today))
 
 @bot.event
 async def on_ready():
@@ -93,22 +117,6 @@ async def daily(ctx):
 **Difficulty:** {q['difficulty']}
 **Link:** {url}
 """)
-
-@bot.command()
-async def done(ctx):
-    init_db()
-    today = date.today()
-    user_id = ctx.author.id
-    info = get_user(user_id)
-    if info is None:
-        streak = 1
-        last_done = today
-        await ctx.send("Welcome, streak = 1!")
-    else:
-
-        await ctx.send("placeholder")
-
-    await ctx.send(f"{user_id}")
 
 #sends a motivational quote scraped from the web
 @bot.command()
