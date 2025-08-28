@@ -102,8 +102,10 @@ async def done(ctx):
     info = get_user(user_id)
     if info is None:
         streak = 1
+        last_done = today
         await ctx.send("Welcome, streak = 1!")
     else:
+
         await ctx.send("placeholder")
 
     await ctx.send(f"{user_id}")
