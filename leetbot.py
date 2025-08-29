@@ -177,10 +177,10 @@ async def daily(ctx):
         url = f"https://leetcode.com{data['link']}"
 
         await ctx.send(f"""
-    **Name:** {q['title']}
-    **Difficulty:** {q['difficulty']}
-    **Link:** {url}
-    """)
+**Name:** {q['title']}
+**Difficulty:** {q['difficulty']}
+**Link:** {url}
+        """)
     except Exception as e:
         await ctx.send("Encountered error fetching today's problem, try again later.")
 
